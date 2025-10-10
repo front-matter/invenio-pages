@@ -10,6 +10,7 @@
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = "145402e8523a"
@@ -20,141 +21,200 @@ depends_on = None
 
 def upgrade():
     """Upgrade database."""
-    op.create_table(
-        "pages_page",
-        sa.Column("created", sa.DateTime(), nullable=False),
-        sa.Column("updated", sa.DateTime(), nullable=False),
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("url", sa.String(length=100), nullable=False),
-        sa.Column("title", sa.String(length=200), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("description", sa.String(length=200), nullable=False),
-        sa.Column("template_name", sa.String(length=70), nullable=False),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_pages_page")),
-        sa.UniqueConstraint("url", name=op.f("uq_pages_page_url")),
-    )
+    # Get the connection and inspector
+    conn = op.get_bind()
+    inspector = inspect(conn)
 
-    op.create_table(
-        "pages_page_version",
-        sa.Column("created", sa.DateTime(), autoincrement=False, nullable=True),
-        sa.Column("updated", sa.DateTime(), autoincrement=False, nullable=True),
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
-        sa.Column("url", sa.String(length=100), autoincrement=False, nullable=True),
-        sa.Column("title", sa.String(length=200), autoincrement=False, nullable=True),
-        sa.Column("content", sa.Text(), autoincrement=False, nullable=True),
-        sa.Column(
-            "description", sa.String(length=200), autoincrement=False, nullable=True
-        ),
-        sa.Column(
-            "template_name", sa.String(length=70), autoincrement=False, nullable=True
-        ),
-        sa.Column(
-            "transaction_id", sa.BigInteger(), autoincrement=False, nullable=False
-        ),
-        sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
-        sa.Column("operation_type", sa.SmallInteger(), nullable=False),
-        sa.PrimaryKeyConstraint(
-            "id", "transaction_id", name=op.f("pk_pages_page_version")
-        ),
-    )
+    # Get existing tables
+    existing_tables = inspector.get_table_names()
 
-    op.create_index(
-        op.f("ix_pages_page_version_end_transaction_id"),
-        "pages_page_version",
-        ["end_transaction_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_pages_page_version_operation_type"),
-        "pages_page_version",
-        ["operation_type"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_pages_page_version_transaction_id"),
-        "pages_page_version",
-        ["transaction_id"],
-        unique=False,
-    )
+    # Create pages_page table if it doesn't exist
+    if "pages_page" not in existing_tables:
+        op.create_table(
+            "pages_page",
+            sa.Column("created", sa.DateTime(), nullable=False),
+            sa.Column("updated", sa.DateTime(), nullable=False),
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column("url", sa.String(length=100), nullable=False),
+            sa.Column("title", sa.String(length=200), nullable=False),
+            sa.Column("content", sa.Text(), nullable=False),
+            sa.Column("description", sa.String(length=200), nullable=False),
+            sa.Column("template_name", sa.String(length=70), nullable=False),
+            sa.PrimaryKeyConstraint("id", name=op.f("pk_pages_page")),
+            sa.UniqueConstraint("url", name=op.f("uq_pages_page_url")),
+        )
 
-    op.create_table(
-        "pages_pagelist_version",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
-        sa.Column("list_id", sa.Integer(), autoincrement=False, nullable=True),
-        sa.Column("page_id", sa.Integer(), autoincrement=False, nullable=True),
-        sa.Column("order", sa.Integer(), autoincrement=False, nullable=True),
-        sa.Column(
-            "transaction_id", sa.BigInteger(), autoincrement=False, nullable=False
-        ),
-        sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
-        sa.Column("operation_type", sa.SmallInteger(), nullable=False),
-        sa.PrimaryKeyConstraint(
-            "id", "transaction_id", name=op.f("pk_pages_pagelist_version")
-        ),
-    )
-    op.create_index(
-        op.f("ix_pages_pagelist_version_end_transaction_id"),
-        "pages_pagelist_version",
-        ["end_transaction_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_pages_pagelist_version_operation_type"),
-        "pages_pagelist_version",
-        ["operation_type"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_pages_pagelist_version_transaction_id"),
-        "pages_pagelist_version",
-        ["transaction_id"],
-        unique=False,
-    )
-    op.create_table(
-        "pages_pagelist",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("list_id", sa.Integer(), nullable=False),
-        sa.Column("page_id", sa.Integer(), nullable=False),
-        sa.Column("order", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["list_id"],
-            ["pages_page.id"],
-            name=op.f("fk_pages_pagelist_list_id_pages_page"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["page_id"],
-            ["pages_page.id"],
-            name=op.f("fk_pages_pagelist_page_id_pages_page"),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_pages_pagelist")),
-    )
+    # Create pages_page_version table if it doesn't exist
+    if "pages_page_version" not in existing_tables:
+        op.create_table(
+            "pages_page_version",
+            sa.Column("created", sa.DateTime(), autoincrement=False, nullable=True),
+            sa.Column("updated", sa.DateTime(), autoincrement=False, nullable=True),
+            sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+            sa.Column("url", sa.String(length=100), autoincrement=False, nullable=True),
+            sa.Column(
+                "title", sa.String(length=200), autoincrement=False, nullable=True
+            ),
+            sa.Column("content", sa.Text(), autoincrement=False, nullable=True),
+            sa.Column(
+                "description", sa.String(length=200), autoincrement=False, nullable=True
+            ),
+            sa.Column(
+                "template_name",
+                sa.String(length=70),
+                autoincrement=False,
+                nullable=True,
+            ),
+            sa.Column(
+                "transaction_id", sa.BigInteger(), autoincrement=False, nullable=False
+            ),
+            sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
+            sa.Column("operation_type", sa.SmallInteger(), nullable=False),
+            sa.PrimaryKeyConstraint(
+                "id", "transaction_id", name=op.f("pk_pages_page_version")
+            ),
+        )
+
+        # Create indexes for pages_page_version if table was created
+        op.create_index(
+            op.f("ix_pages_page_version_end_transaction_id"),
+            "pages_page_version",
+            ["end_transaction_id"],
+            unique=False,
+        )
+        op.create_index(
+            op.f("ix_pages_page_version_operation_type"),
+            "pages_page_version",
+            ["operation_type"],
+            unique=False,
+        )
+        op.create_index(
+            op.f("ix_pages_page_version_transaction_id"),
+            "pages_page_version",
+            ["transaction_id"],
+            unique=False,
+        )
+
+    # Create pages_pagelist_version table if it doesn't exist
+    if "pages_pagelist_version" not in existing_tables:
+        op.create_table(
+            "pages_pagelist_version",
+            sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+            sa.Column("list_id", sa.Integer(), autoincrement=False, nullable=True),
+            sa.Column("page_id", sa.Integer(), autoincrement=False, nullable=True),
+            sa.Column("order", sa.Integer(), autoincrement=False, nullable=True),
+            sa.Column(
+                "transaction_id", sa.BigInteger(), autoincrement=False, nullable=False
+            ),
+            sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
+            sa.Column("operation_type", sa.SmallInteger(), nullable=False),
+            sa.PrimaryKeyConstraint(
+                "id", "transaction_id", name=op.f("pk_pages_pagelist_version")
+            ),
+        )
+
+        # Create indexes for pages_pagelist_version if table was created
+        op.create_index(
+            op.f("ix_pages_pagelist_version_end_transaction_id"),
+            "pages_pagelist_version",
+            ["end_transaction_id"],
+            unique=False,
+        )
+        op.create_index(
+            op.f("ix_pages_pagelist_version_operation_type"),
+            "pages_pagelist_version",
+            ["operation_type"],
+            unique=False,
+        )
+        op.create_index(
+            op.f("ix_pages_pagelist_version_transaction_id"),
+            "pages_pagelist_version",
+            ["transaction_id"],
+            unique=False,
+        )
+
+    # Create pages_pagelist table if it doesn't exist
+    if "pages_pagelist" not in existing_tables:
+        op.create_table(
+            "pages_pagelist",
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column("list_id", sa.Integer(), nullable=False),
+            sa.Column("page_id", sa.Integer(), nullable=False),
+            sa.Column("order", sa.Integer(), nullable=False),
+            sa.ForeignKeyConstraint(
+                ["list_id"],
+                ["pages_page.id"],
+                name=op.f("fk_pages_pagelist_list_id_pages_page"),
+            ),
+            sa.ForeignKeyConstraint(
+                ["page_id"],
+                ["pages_page.id"],
+                name=op.f("fk_pages_pagelist_page_id_pages_page"),
+            ),
+            sa.PrimaryKeyConstraint("id", name=op.f("pk_pages_pagelist")),
+        )
 
 
 def downgrade():
     """Downgrade database."""
-    op.drop_table("pages_pagelist")
-    op.drop_index(
-        op.f("ix_pages_pagelist_version_transaction_id"),
-        table_name="pages_pagelist_version",
-    )
-    op.drop_index(
-        op.f("ix_pages_pagelist_version_operation_type"),
-        table_name="pages_pagelist_version",
-    )
-    op.drop_index(
-        op.f("ix_pages_pagelist_version_end_transaction_id"),
-        table_name="pages_pagelist_version",
-    )
-    op.drop_table("pages_pagelist_version")
-    op.drop_index(
-        op.f("ix_pages_page_version_transaction_id"), table_name="pages_page_version"
-    )
-    op.drop_index(
-        op.f("ix_pages_page_version_operation_type"), table_name="pages_page_version"
-    )
-    op.drop_index(
-        op.f("ix_pages_page_version_end_transaction_id"),
-        table_name="pages_page_version",
-    )
-    op.drop_table("pages_page_version")
-    op.drop_table("pages_page")
+    # Get the connection and inspector
+    conn = op.get_bind()
+    inspector = inspect(conn)
+
+    # Get existing tables
+    existing_tables = inspector.get_table_names()
+
+    # Drop tables in reverse order if they exist
+    if "pages_pagelist" in existing_tables:
+        op.drop_table("pages_pagelist")
+
+    if "pages_pagelist_version" in existing_tables:
+        # Get existing indexes for pages_pagelist_version
+        existing_indexes = [
+            idx["name"] for idx in inspector.get_indexes("pages_pagelist_version")
+        ]
+
+        if "ix_pages_pagelist_version_transaction_id" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_pagelist_version_transaction_id"),
+                table_name="pages_pagelist_version",
+            )
+        if "ix_pages_pagelist_version_operation_type" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_pagelist_version_operation_type"),
+                table_name="pages_pagelist_version",
+            )
+        if "ix_pages_pagelist_version_end_transaction_id" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_pagelist_version_end_transaction_id"),
+                table_name="pages_pagelist_version",
+            )
+
+        op.drop_table("pages_pagelist_version")
+
+    if "pages_page_version" in existing_tables:
+        # Get existing indexes for pages_page_version
+        existing_indexes = [
+            idx["name"] for idx in inspector.get_indexes("pages_page_version")
+        ]
+
+        if "ix_pages_page_version_transaction_id" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_page_version_transaction_id"),
+                table_name="pages_page_version",
+            )
+        if "ix_pages_page_version_operation_type" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_page_version_operation_type"),
+                table_name="pages_page_version",
+            )
+        if "ix_pages_page_version_end_transaction_id" in existing_indexes:
+            op.drop_index(
+                op.f("ix_pages_page_version_end_transaction_id"),
+                table_name="pages_page_version",
+            )
+
+        op.drop_table("pages_page_version")
+
+    if "pages_page" in existing_tables:
+        op.drop_table("pages_page")
